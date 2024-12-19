@@ -1,5 +1,70 @@
 import numpy as np
 
+
+
+#% --------------Mantle Solidus and Liquidus from Korenega et al. 2024-------------------------------------------------
+
+# Knots (depth in km)
+z_knots = np.array([0.0, 410.0, 670.0, 2900.0])
+
+# Solidus parameters
+T_s_knots = np.array([1273.0, 2323.0, 2473.0, 3985.0])  # Kelvin
+b_s_knots = np.array([-1e-3, -7e-3, -1e-3, 3e-4])       # K/km^2
+
+# Liquidus parameters
+T_l_knots = np.array([1973.0, 2423.0, 2723.0, 5375.0]) # Kelvin
+b_l_knots = np.array([-1e-3, -7e-3, -2.5e-3, 5e-4])    # K/km^2
+
+def H(x):
+    """Heaviside step function."""
+    return np.where(x >= 0, 1.0, 0.0)
+
+def S(Ti, Tip1, bi, bip1, zi, zip1, z):
+    """
+    Cubic spline segment function S as defined in the text.
+    """
+    hi = zip1 - zi
+    term1 = (bip1 * (z - zi)**3) / (6.0 * hi)
+    term2 = (bi * (zip1 - z)**3) / (6.0 * hi)
+    term3 = ( (Tip1 / hi) - (bip1 * hi / 6.0) ) * (z - zi)
+    term4 = ( (Ti / hi) - (bi * hi / 6.0) ) * (zip1 - z)
+    return term1 + term2 + term3 + term4
+
+def solidus(z):
+    """
+    Solidus temperature Ts(z) defined by cubic splines.
+    z in km, Ts in Kelvin.
+    """
+    Ts_val = np.zeros_like(z)  # Initialize array of zeros with same shape as input
+    for i in range(3):
+        zi = z_knots[i]
+        zip1 = z_knots[i+1]
+        mask = (z >= zi) & (z < zip1)  # Create boolean mask for this interval
+        if np.any(mask):  # If any points fall in this interval
+            Ts_val[mask] = S(T_s_knots[i], T_s_knots[i+1], 
+                           b_s_knots[i], b_s_knots[i+1], 
+                           zi, zip1, z[mask])
+    return Ts_val
+
+def liquidus(z):
+    """
+    Liquidus temperature Tl(z) defined by cubic splines.
+    z in km, Tl in Kelvin.
+    """
+    Tl_val = np.zeros_like(z)
+    for i in range(3):
+        zi = z_knots[i]
+        zip1 = z_knots[i+1]
+        mask = (z >= zi) & (z < zip1)
+        if np.any(mask):
+            Tl_val[mask] = S(T_l_knots[i], T_l_knots[i+1], 
+                           b_l_knots[i], b_l_knots[i+1], 
+                           zi, zip1, z[mask])
+    return Tl_val
+
+#% ---------------------------------------------------------------
+
+
 def calculate_adiabatic_profile(depth_array, T_surface=2500, g=9.81, 
                               alpha=3e-5, Cp=1200, rho=3300):
     """
