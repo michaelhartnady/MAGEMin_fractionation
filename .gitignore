@@ -1,0 +1,30 @@
+# Ignore all hidden files and directories
+.*
+
+# But don't ignore .gitignore itself
+!.gitignore
+
+# Don't ignore .github directory
+!.github/
+
+# Python
+__pycache__/
+*.py[cod]
+*.so
+
+# Jupyter Notebook
+*.ipynb
+!README.ipynb
+!example_notebook.ipynb
+
+# Development and resource files
+code/development/*
+code/resources/adiabat.py
+code/resources/korenega_model.py
+code/resources/fractionation.py
+
+# Python files in root
+mantle.py
+
+# Image files
+*.svg
